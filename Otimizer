@@ -1,0 +1,99 @@
+--[[
+    Script de otimização para jogos em Roblox/Lua
+    - Desativa luzes desnecessárias
+    - Define brilho máximo
+    - Remove partes e efeitos irrelevantes
+    - Exibe contador de FPS na tela
+    Use como LocalScript em StarterPlayerScripts para efeitos do FPS.
+]]
+
+-- Desativar todas as luzes (PointLight, SpotLight, SurfaceLight)
+for _, lightClass in pairs({"PointLight", "SpotLight", "SurfaceLight"}) do
+    for _, light in ipairs(game:GetDescendants()) do
+        if light:IsA(lightClass) then
+            light.Enabled = false
+        end
+    end
+end
+
+-- Definir brilho do ambiente para o máximo
+if game.Lighting then
+    game.Lighting.Brightness = 10 -- Valor alto para brilho máximo
+    game.Lighting.GlobalShadows = false -- Remove sombras para melhorar desempenho
+    game.Lighting.FogEnd = 100000 -- Remove neblina
+    game.Lighting.OutdoorAmbient = Color3.new(1, 1, 1) -- Full white
+end
+
+-- Remover partes desnecessárias (decoração, vegetação, etc.)
+local keywordsToRemove = {"Deco", "Decor", "Tree", "Bush", "Grass", "Plant", "Rock", "Flower"}
+for _, part in ipairs(game:GetDescendants()) do
+    if part:IsA("BasePart") or part:IsA("Model") then
+        for _, keyword in ipairs(keywordsToRemove) do
+            if string.find(part.Name:lower(), keyword:lower()) then
+                part:Destroy()
+                break
+            end
+        end
+    end
+end
+
+-- Remover efeitos visuais pesados
+for _, effectClass in pairs({"ParticleEmitter", "Trail", "Smoke", "Fire", "Sparkles"}) do
+    for _, effect in ipairs(game:GetDescendants()) do
+        if effect:IsA(effectClass) then
+            effect.Enabled = false
+        end
+    end
+end
+
+-- Otimizar propriedades das Parts
+for _, part in ipairs(game:GetDescendants()) do
+    if part:IsA("BasePart") then
+        part.Reflectance = 0
+        part.CastShadow = false
+        part.Material = Enum.Material.Plastic
+    end
+end
+
+-- FPS Counter (apenas LocalScript)
+local function showFPS()
+    local player = game.Players.LocalPlayer
+    if not player then return end
+
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "FPSCounter"
+    gui.ResetOnSpawn = false
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Parent = gui
+    textLabel.Size = UDim2.new(0, 200, 0, 40)
+    textLabel.Position = UDim2.new(0, 10, 0, 10)
+    textLabel.BackgroundTransparency = 0.5
+    textLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    textLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+    textLabel.TextSize = 30
+    textLabel.Font = Enum.Font.SourceSansBold
+    textLabel.TextStrokeTransparency = 0.5
+    textLabel.Text = "FPS: ..."
+
+    gui.Parent = player:WaitForChild("PlayerGui")
+
+    -- FPS Calculation
+    local RunService = game:GetService("RunService")
+    local frames = 0
+    local lastTime = tick()
+    RunService.RenderStepped:Connect(function()
+        frames = frames + 1
+        local now = tick()
+        if now - lastTime >= 1 then
+            textLabel.Text = "FPS: " .. tostring(frames)
+            frames = 0
+            lastTime = now
+        end
+    end)
+end
+
+-- Só roda o FPS em LocalScript
+if pcall(function() return game:GetService("Players").LocalPlayer end) then
+    showFPS()
+end
